@@ -69,7 +69,7 @@ typical first debugging session:
 | `:add top.cpu.clk` | Add a signal by its full hierarchical name. |
 | `:add top.cpu.*` | Add signals matching a `*` glob. |
 | `:addall top.cpu` | Add every signal below a scope. |
-| `:find 'clk|reset'` | Search signal names with a POSIX regular expression. |
+| `:find 'clk\|reset'` | Search signal names with a POSIX regular expression. |
 | `:goto 100ns` | Move the cursor and view to a time. |
 | `:mark 100ns` / `:bmark 150ns` | Place the primary and baseline markers. |
 | `:zoom fit` | Fit the view between the two markers. |

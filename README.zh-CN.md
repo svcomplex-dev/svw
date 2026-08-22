@@ -61,7 +61,7 @@ svw wave.fst
 | `:add top.cpu.clk` | 按完整层次名添加信号。 |
 | `:add top.cpu.*` | 添加符合 `*` glob 的信号。 |
 | `:addall top.cpu` | 添加某个 scope 下的全部信号。 |
-| `:find 'clk|reset'` | 使用 POSIX 正则搜索信号名。 |
+| `:find 'clk\|reset'` | 使用 POSIX 正则搜索信号名。 |
 | `:goto 100ns` | 将光标和视图移动到指定时刻。 |
 | `:mark 100ns` / `:bmark 150ns` | 放置主 marker 和基准 marker。 |
 | `:zoom fit` | 将视图适配到两个 marker 之间。 |
