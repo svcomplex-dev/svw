@@ -8,8 +8,8 @@ and build gates run outside GitHub.
 
 ## latest
 
-This is the continuously replaced latest build from authoritative Gitea revision `bde1f36646781a9384794f16a7ca4f660a8749da`.
-The retained Forgejo package version is `latest-bde1f36646781a9384794f16a7ca4f660a8749da`.
+This is the continuously replaced latest build from authoritative Gitea revision `ceccf1f2cc6318d9f1c736c469c682f92314a309`.
+The retained Forgejo package version is `latest-ceccf1f2cc6318d9f1c736c469c682f92314a309`.
 
 | Platform | Binary | SHA-256 |
 | --- | --- | --- |
