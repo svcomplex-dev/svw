@@ -48,12 +48,15 @@ release with:
 curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/svcomplex-dev/svw/main/install.sh | sh
 ```
 
-On macOS this installs `svcomplex-dev/tap/svw`. To select an immutable release
-on either platform, pass its version to the same installer:
+The zero-argument command follows the newest immutable release; currently
+`0.1.0`. On macOS this installs `svcomplex-dev/tap/svw`. To select an immutable
+release on either platform, pass its version to the same installer:
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/svcomplex-dev/svw/main/install.sh | sh -s -- --version 0.1.0
 ```
+
+To explicitly install the replaceable rolling build, pass `--version latest`.
 
 Open a waveform:
 

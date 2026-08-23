@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v6
       - name: Installer contract tests
         run: sh tests/install.sh
-      - name: Install public latest and smoke test svw
+      - name: Install public stable release and smoke test svw
         run: |
           set -eu
           test_root=$(mktemp -d)

@@ -40,12 +40,14 @@ GitHub Release 归档安装 **Linux（x86_64）** 版本。运行下面的命令
 curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/svcomplex-dev/svw/main/install.sh | sh
 ```
 
-macOS 会安装 `svcomplex-dev/tap/svw`。两个平台都可以向同一安装器传入版本号，选择
-不可变的发布版本：
+无参数命令始终跟随最新的不可变 Release，当前为 `0.1.0`；macOS 会安装
+`svcomplex-dev/tap/svw`。两个平台都可以向同一安装器传入版本号，选择不可变的发布版本：
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/svcomplex-dev/svw/main/install.sh | sh -s -- --version 0.1.0
 ```
+
+如需显式安装可替换的滚动构建，请传入 `--version latest`。
 
 打开波形：
 

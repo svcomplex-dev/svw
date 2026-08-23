@@ -67,7 +67,7 @@ cat > "$mock_bin/brew" <<'EOF'
 set -eu
 printf '%s\n' "$*" >> "$MOCK_BREW_LOG"
 case "$1" in
-    tap|update) exit 0 ;;
+    tap|trust|update) exit 0 ;;
     list)
         formula=$3
         grep -Fqx "$formula" "$MOCK_BREW_STATE" 2>/dev/null
@@ -132,7 +132,7 @@ run_linux_install() {
     [ "$(grep -c '# Added by the svw installer' "$home_dir/.zshrc")" -eq 1 ]
 }
 
-run_linux_install default latest
+run_linux_install default release-0.1.0
 run_linux_install latest latest
 run_linux_install 0.1.0 release-0.1.0
 run_linux_install release-0.1.0 release-0.1.0
@@ -156,18 +156,21 @@ run_macos_install() {
     MOCK_BREW_PREFIX="$brew_prefix" \
         sh "$project_dir/install.sh" "$@"
     grep -Fqx "tap svcomplex-dev/tap" "$brew_log"
+    grep -Fqx "trust svcomplex-dev/tap" "$brew_log"
     grep -Fqx "install $expected_formula" "$brew_log"
 }
 
 run_macos_install default svcomplex-dev/tap/svw
+run_macos_install latest svcomplex-dev/tap/svw-latest
 run_macos_install 0.1.0 svcomplex-dev/tap/svw@0.1.0
+grep -Fqx "link --overwrite --force svcomplex-dev/tap/svw-latest" "$brew_log"
 grep -Fqx "link --overwrite --force svcomplex-dev/tap/svw@0.1.0" "$brew_log"
 
 bad_home="$test_dir/home-bad-hash"
 mkdir -p "$bad_home" "$test_dir/bad-release"
-cp "$release_dir/svw-latest-linux-x64.tar.gz" "$test_dir/bad-release/"
-printf '%064d  svw-latest-linux-x64.tar.gz\n' 0 \
-    > "$test_dir/bad-release/svw-latest-linux-x64.tar.gz.sha256"
+cp "$release_dir/svw-release-0.1.0-linux-x64.tar.gz" "$test_dir/bad-release/"
+printf '%064d  svw-release-0.1.0-linux-x64.tar.gz\n' 0 \
+    > "$test_dir/bad-release/svw-release-0.1.0-linux-x64.tar.gz.sha256"
 if HOME="$bad_home" \
     PATH="$mock_bin:/usr/bin:/bin" \
     TEST_UNAME_S=Linux \
