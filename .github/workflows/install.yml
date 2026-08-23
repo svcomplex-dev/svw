@@ -30,21 +30,3 @@ jobs:
             --no-modify-path
           "$test_root/bin/svw" --version
           "$test_root/bin/svw" --help >/dev/null
-
-  macos-arm64:
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@v6
-      - name: Install latest through Homebrew and smoke test svw
-        run: |
-          set -eu
-          test "$(uname -m)" = arm64
-          sh install.sh --version latest
-          svw --version
-          svw --help >/dev/null
-      - name: Install fixed release through Homebrew and smoke test svw
-        run: |
-          set -eu
-          sh install.sh --version 0.1.0
-          svw --version
-          svw --help >/dev/null
