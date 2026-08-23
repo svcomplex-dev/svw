@@ -40,11 +40,19 @@ terminal.
 
 ## Install
 
-The installer currently supports **macOS (Apple silicon)** and
-**Linux (x86_64)**. Install the latest release with:
+The installer supports **macOS (Apple silicon)** through Homebrew and
+**Linux (x86_64)** through verified GitHub Release archives. Install the latest
+release with:
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/svcomplex-dev/svw/main/install.sh | sh
+```
+
+On macOS this installs `svcomplex-dev/tap/svw`. To select an immutable release
+on either platform, pass its version to the same installer:
+
+```sh
+curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/svcomplex-dev/svw/main/install.sh | sh -s -- --version 0.1.0
 ```
 
 Open a waveform:

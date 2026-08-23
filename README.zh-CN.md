@@ -33,11 +33,18 @@ svw 无需额外设置即可打开 VCD、EVCD 和 FST 波形，并在终端中�
 
 ## 安装
 
-安装脚本目前仅支持 **macOS（Apple silicon）** 和 **Linux（x86_64）**。
-运行下面的命令安装最新版本：
+安装脚本支持通过 Homebrew 安装 **macOS（Apple silicon）** 版本，以及通过校验后的
+GitHub Release 归档安装 **Linux（x86_64）** 版本。运行下面的命令安装最新版本：
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/svcomplex-dev/svw/main/install.sh | sh
+```
+
+macOS 会安装 `svcomplex-dev/tap/svw`。两个平台都可以向同一安装器传入版本号，选择
+不可变的发布版本：
+
+```sh
+curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/svcomplex-dev/svw/main/install.sh | sh -s -- --version 0.1.0
 ```
 
 打开波形：
