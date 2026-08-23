@@ -1,12 +1,8 @@
 name: Installer smoke tests
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - install.sh
-      - tests/install.sh
-      - .github/workflows/install.yml
+  repository_dispatch:
+    types: [svw-release-ready]
   workflow_dispatch:
 
 permissions:
@@ -36,6 +32,9 @@ jobs:
           "$test_root/bin/svw" --help >/dev/null
 
   macos-arm64:
+    # Automatic latest macOS coverage runs in homebrew-tap after its candidate
+    # Formula is ready. Manual dispatch keeps an independent end-to-end check.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v6
