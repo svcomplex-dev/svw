@@ -105,6 +105,9 @@ svw also provides non-interactive waveform utilities:
 svw diff golden.vcd dut.vcd
 ```
 
+Whole-file reports show differing signals only. Add `--all` when a verbose
+section for every compared signal is required.
+
 ## Performance
 
 VCD is plain text: a full eager parse costs RAM many times the file size,
