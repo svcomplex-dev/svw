@@ -107,31 +107,52 @@ svw diff golden.vcd dut.vcd
 
 ## Performance
 
-VCD is plain text: svw parses it eagerly, so RAM usage is a multiple of the
-file size (very large dumps can need more than 10x their size on disk). svw
-warns once when opening a VCD larger than 100 MB. For big or frequently
-reopened waves, convert to the MXV container once—loading becomes an mmap
-open and queries go through on-disk indexes:
+VCD is plain text: a full eager parse costs RAM many times the file size,
+so opening a VCD larger than 100 MB automatically stream-converts it to a
+temporary KBX first (bounded memory, lazy queries; `SVW_VCD_EAGER=1`
+forces the legacy eager parse). For big or frequently reopened waves,
+convert to the KBX container (KBX, "Kuai Bo Xing" 快波形, is svw's own
+compressed waveform format) once—opening becomes an mmap map and queries
+go through on-disk indexes:
 
 ```sh
-svw extract wave.vcd wave.mxv
+svw extract wave.vcd wave.kbx
 ```
 
-Measured with `tests/mxv_bench` (10,000 signals x 2,000 time steps, noisy
-profile; AMD Ryzen 7 5800U, Linux x86_64—absolute numbers vary by machine):
+### Format comparison
 
-| metric | VCD | FST | MXV | MXV (lazy) |
+Measured with `tests/mxv_bench` (100,000 signals x 2,000 time steps =
+200M value changes, noisy profile; AMD Ryzen 7 5800U, Linux x86_64—absolute
+numbers vary by machine):
+
+| metric | VCD | FST | KBX | KBX (lazy) |
 |---|---|---|---|---|
-| file size (MB) | 44.8 | 11.0 | **9.8** | - |
-| write (s) | 0.54 | 0.85 | **2.20** | - |
-| load (s) | 3.15 | 1.55 | 0.77 | **0.0000** (mmap open) |
-| value_at (ns/op) | 689 | 689 | 689 | 10140 |
-| signal search (ns/op) | 30680 | 30680 | - | **359** |
-| changes_in window (us/op) | 1.6 | 1.6 | 1.6 | 11.2 |
+| file size (MB) | 487 | 116 | **98** | - |
+| write (s) | 10.5 | 20.9 | **21.8** | - |
+| load (s) | 80.7 | 39.0 | 11.9 | see note |
+| value_at (ns/op) | 1299 | 1299 | 1299 | 14874 |
+| signal search (ns/op) | 2181514 | 2181514 | - | **960** |
+| changes_in window (us/op) | 3.0 | 3.0 | 3.0 | 19.1 |
 
 Fully loaded formats share the same in-memory query engine, so their
-`value_at`/`changes_in` numbers match; the lazy MXV column trades query
-latency for near-instant open and low memory use.
+`value_at`/`changes_in` numbers match. The lazy column does not "load":
+opening a KBX lazily is an mmap plus header check (microseconds at any
+file size—below the bench's 0.1 ms resolution, which is why earlier
+revisions of this table printed a misleading "0.0000 s"), and every query
+then pays on-disk block decode (see the per-op columns).
+
+### Large VCD loads
+
+Measured on a real 1.1 GB VCD (93M value changes, `svw --headless`,
+`/usr/bin/time` peak RSS, same machine):
+
+| open path | wall time | peak memory |
+|---|---|---|
+| eager parse (legacy) | 119 s | 34 GB |
+| streaming auto-convert (default for >100 MB) | 68 s | **59 MB** |
+
+`svw extract` uses the same streaming writer, so conversion is bounded in
+memory too (89 MB VCD: 60 MB peak vs 2.8 GB with the former eager path).
 
 ## Made for agents, not just humans
 

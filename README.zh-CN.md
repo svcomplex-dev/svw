@@ -98,29 +98,49 @@ svw diff golden.vcd dut.vcd
 
 ## 性能
 
-VCD 是纯文本:svw 会一次性完整解析,内存占用是文件大小的数倍(超大
-dump 可能超过磁盘大小的 10 倍)。打开超过 100 MB 的 VCD 时 svw 会提示
-一次。对于大文件或需要反复打开的波形,建议先转换为 MXV 容器——加载
-变成 mmap 打开,查询走磁盘索引:
+VCD 是纯文本:全量 eager 解析的内存开销是文件大小的数倍,因此打开
+超过 100 MB 的 VCD 时 svw 会先自动流式转换为临时 KBX(内存有界、
+惰性查询;`SVW_VCD_EAGER=1` 可强制旧的 eager 解析)。对于大文件或
+需要反复打开的波形,建议先转换为 KBX 容器(KBX 即"快波形",是 svw
+自有的压缩波形格式)——打开变成 mmap 映射,查询走磁盘索引:
 
 ```sh
-svw extract wave.vcd wave.mxv
+svw extract wave.vcd wave.kbx
 ```
 
-以下数据由 `tests/mxv_bench` 实测(10000 个信号 × 2000 个时间步,
-noisy profile;AMD Ryzen 7 5800U,Linux x86_64——绝对数值随机器不同):
+### 格式对比
 
-| 指标 | VCD | FST | MXV | MXV(lazy) |
+以下数据由 `tests/mxv_bench` 实测(100000 个信号 × 2000 个时间步
+= 2 亿次取值变更,noisy profile;AMD Ryzen 7 5800U,Linux x86_64——
+绝对数值随机器不同):
+
+| 指标 | VCD | FST | KBX | KBX(lazy) |
 |---|---|---|---|---|
-| 文件大小 (MB) | 44.8 | 11.0 | **9.8** | - |
-| 写入 (s) | 0.54 | 0.85 | **2.20** | - |
-| 加载 (s) | 3.15 | 1.55 | 0.77 | **0.0000**(mmap 打开) |
-| value_at (ns/op) | 689 | 689 | 689 | 10140 |
-| signal search (ns/op) | 30680 | 30680 | - | **359** |
-| changes_in window (us/op) | 1.6 | 1.6 | 1.6 | 11.2 |
+| 文件大小 (MB) | 487 | 116 | **98** | - |
+| 写入 (s) | 10.5 | 20.9 | **21.8** | - |
+| 加载 (s) | 80.7 | 39.0 | 11.9 | 见下注 |
+| value_at (ns/op) | 1299 | 1299 | 1299 | 14874 |
+| signal search (ns/op) | 2181514 | 2181514 | - | **960** |
+| changes_in window (us/op) | 3.0 | 3.0 | 3.0 | 19.1 |
 
 全量加载的格式共用同一套内存查询引擎,因此 `value_at`/`changes_in`
-数字一致;lazy MXV 列以查询延迟换取近乎即时的打开速度和低内存占用。
+数字一致。lazy 列没有"加载"一说:lazy 打开 KBX 只是 mmap 加头部校验
+(微秒级,与文件大小无关——低于 bench 的 0.1ms 分辨率,这也是旧版
+表格印出误导性 "0.0000 s" 的原因),此后每次查询支付磁盘块解码开销
+(见各 per-op 列)。
+
+### 大 VCD 打开实测
+
+真实 1.1 GB VCD(9300 万次取值变更,`svw --headless`,
+`/usr/bin/time` 峰值 RSS,同一台机器):
+
+| 打开路径 | 耗时 | 峰值内存 |
+|---|---|---|
+| eager 解析(旧路径) | 119 s | 34 GB |
+| 流式自动转换(>100 MB 默认) | 68 s | **59 MB** |
+
+`svw extract` 使用同一套流式 writer,转换本身内存同样有界
+(89 MB VCD:峰值 60 MB,旧 eager 路径为 2.8 GB)。
 
 ## 不只为人类，也为 Agent
 
