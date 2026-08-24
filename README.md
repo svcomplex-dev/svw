@@ -20,7 +20,7 @@ workflow.
 
 svw opens VCD, EVCD, and FST waveforms without extra setup. It presents
 digital signals, buses, unknown states, and real-valued traces clearly in the
-terminal.
+terminal. Gzip-compressed VCD/EVCD files (`.vcd.gz`) open transparently.
 
 The interactive interface provides a fuzzy signal picker, markers, edge
 navigation, zoom history, mouse controls, themes, a `:` command line, and a
@@ -104,6 +104,34 @@ svw also provides non-interactive waveform utilities:
 # Compare all same-named signals; exit 0 means equal, 1 means different
 svw diff golden.vcd dut.vcd
 ```
+
+## Performance
+
+VCD is plain text: svw parses it eagerly, so RAM usage is a multiple of the
+file size (very large dumps can need more than 10x their size on disk). svw
+warns once when opening a VCD larger than 100 MB. For big or frequently
+reopened waves, convert to the MXV container once—loading becomes an mmap
+open and queries go through on-disk indexes:
+
+```sh
+svw extract wave.vcd wave.mxv
+```
+
+Measured with `tests/mxv_bench` (10,000 signals x 2,000 time steps, noisy
+profile; AMD Ryzen 7 5800U, Linux x86_64—absolute numbers vary by machine):
+
+| metric | VCD | FST | MXV | MXV (lazy) |
+|---|---|---|---|---|
+| file size (MB) | 44.8 | 11.0 | **9.8** | - |
+| write (s) | 0.54 | 0.85 | **2.20** | - |
+| load (s) | 3.15 | 1.55 | 0.77 | **0.0000** (mmap open) |
+| value_at (ns/op) | 689 | 689 | 689 | 10140 |
+| signal search (ns/op) | 30680 | 30680 | - | **359** |
+| changes_in window (us/op) | 1.6 | 1.6 | 1.6 | 11.2 |
+
+Fully loaded formats share the same in-memory query engine, so their
+`value_at`/`changes_in` numbers match; the lazy MXV column trades query
+latency for near-instant open and low memory use.
 
 ## Made for agents, not just humans
 
