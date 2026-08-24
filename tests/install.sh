@@ -68,6 +68,11 @@ set -eu
 printf '%s\n' "$*" >> "$MOCK_BREW_LOG"
 case "$1" in
     tap|trust|update) exit 0 ;;
+    help)
+        [ "${2:-}" = trust ] || exit 64
+        [ "${MOCK_BREW_TRUST_SUPPORTED:-1}" = 1 ] || exit 64
+        exit 0
+        ;;
     list)
         formula=$3
         grep -Fqx "$formula" "$MOCK_BREW_STATE" 2>/dev/null
@@ -156,6 +161,7 @@ run_macos_install() {
     MOCK_BREW_PREFIX="$brew_prefix" \
         sh "$project_dir/install.sh" "$@"
     grep -Fqx "tap svcomplex-dev/tap" "$brew_log"
+    grep -Fqx "help trust" "$brew_log"
     grep -Fqx "trust svcomplex-dev/tap" "$brew_log"
     grep -Fqx "install $expected_formula" "$brew_log"
 }
@@ -165,6 +171,28 @@ run_macos_install latest svcomplex-dev/tap/svw-latest
 run_macos_install 0.1.0 svcomplex-dev/tap/svw@0.1.0
 grep -Fqx "link --overwrite --force svcomplex-dev/tap/svw-latest" "$brew_log"
 grep -Fqx "link --overwrite --force svcomplex-dev/tap/svw@0.1.0" "$brew_log"
+
+no_trust_home="$test_dir/home-macos-no-trust"
+no_trust_log="$test_dir/brew-no-trust.log"
+no_trust_state="$test_dir/brew-no-trust.state"
+no_trust_prefix="$test_dir/homebrew-no-trust-prefix"
+mkdir -p "$no_trust_home" "$no_trust_prefix/bin"
+HOME="$no_trust_home" \
+PATH="$mock_bin:/usr/bin:/bin" \
+TEST_UNAME_S=Darwin \
+TEST_UNAME_M=arm64 \
+MOCK_BREW_LOG="$no_trust_log" \
+MOCK_BREW_STATE="$no_trust_state" \
+MOCK_BREW_PREFIX="$no_trust_prefix" \
+MOCK_BREW_TRUST_SUPPORTED=0 \
+    sh "$project_dir/install.sh"
+grep -Fqx "tap svcomplex-dev/tap" "$no_trust_log"
+grep -Fqx "help trust" "$no_trust_log"
+if grep -Fqx "trust svcomplex-dev/tap" "$no_trust_log"; then
+    printf 'unsupported brew trust must not be invoked\n' >&2
+    exit 1
+fi
+grep -Fqx "install svcomplex-dev/tap/svw" "$no_trust_log"
 
 bad_home="$test_dir/home-bad-hash"
 mkdir -p "$bad_home" "$test_dir/bad-release"
