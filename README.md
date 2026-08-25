@@ -77,6 +77,16 @@ export SVW_FSDB_BRIDGE=/absolute/path/to/libsvw-wave-bridge.so
 svw wave.fsdb
 ```
 
+On Linux, build the independent public bridge against a reader SDK that you
+obtained and are entitled to use:
+
+```sh
+./build-svw-wave-bridge.sh --reader-root /absolute/path/to/FsdbReader
+```
+
+The helper clones the public bridge source and writes
+`./libsvw-wave-bridge.so`. It neither downloads nor copies any reader SDK.
+
 The bridge client and its commands are always present in svw; there is no
 FSDB-specific build switch. `SVW_FSDB_BRIDGE` activates only the local library
 chosen by the user. Without it, opening an FSDB reports how to activate the

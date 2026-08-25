@@ -68,6 +68,15 @@ export SVW_FSDB_BRIDGE=/absolute/path/to/libsvw-wave-bridge.so
 svw wave.fsdb
 ```
 
+Linux 用户可用以下脚本，以自己合法取得的本机 reader SDK 编译独立的公开 bridge：
+
+```sh
+./build-svw-wave-bridge.sh --reader-root /absolute/path/to/FsdbReader
+```
+
+脚本从公开仓库克隆 bridge 源码并输出 `./libsvw-wave-bridge.so`，不会下载或复制
+任何 reader SDK。
+
 bridge 客户端及相关命令始终包含在 svw 中，不再存在 FSDB 专用编译开关。
 `SVW_FSDB_BRIDGE` 只负责激活用户明确选择的本机动态库；未设置时，打开 FSDB
 会给出激活说明，其他内置波形和设计工作流仍全部可用。
