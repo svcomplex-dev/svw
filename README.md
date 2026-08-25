@@ -65,6 +65,31 @@ svw wave.vcd
 svw wave.fst
 ```
 
+### User-activated FSDB bridge
+
+Distributed svw archives contain neither a reader SDK nor a bridge library,
+and `bin/svw` does not link to either one. Users who are entitled to use a
+compatible local reader can build the separate MIT-licensed SVW Wave Bridge
+and activate that local dynamic library explicitly:
+
+```sh
+export SVW_FSDB_BRIDGE=/absolute/path/to/libsvw-wave-bridge.so
+svw wave.fsdb
+```
+
+The bridge client and its commands are always present in svw; there is no
+FSDB-specific build switch. `SVW_FSDB_BRIDGE` activates only the local library
+chosen by the user. Without it, opening an FSDB reports how to activate the
+bridge, while every built-in waveform and design workflow remains available.
+
+svw never searches for a bridge or reader library. Its main process creates a
+bounded read-only channel and starts an isolated copy of the exact same `svw`
+executable. Only that child loads the absolute bridge path with local symbol
+visibility and resolves the single versioned C ABI entry. The bridge then uses
+the reader installed on that user's machine. Distribution gates reject bridge
+or reader dependencies, reader symbols and paths, runtime search paths, and
+dynamic libraries or archives inside the svw package.
+
 For the clearest display, use a modern monospaced terminal font with broad
 symbol coverage. The screenshots and recordings use the same recommended
 setup.

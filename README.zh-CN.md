@@ -57,6 +57,27 @@ svw wave.vcd
 svw wave.fst
 ```
 
+### 由用户激活的 FSDB bridge
+
+svw 分发归档既不包含 reader SDK，也不包含 bridge 动态库；`bin/svw` 不与二者
+直接链接。已有相应本机 reader 合法使用权的用户，可以自行构建单独采用 MIT
+协议的 SVW Wave Bridge，并显式激活该本机动态库：
+
+```sh
+export SVW_FSDB_BRIDGE=/absolute/path/to/libsvw-wave-bridge.so
+svw wave.fsdb
+```
+
+bridge 客户端及相关命令始终包含在 svw 中，不再存在 FSDB 专用编译开关。
+`SVW_FSDB_BRIDGE` 只负责激活用户明确选择的本机动态库；未设置时，打开 FSDB
+会给出激活说明，其他内置波形和设计工作流仍全部可用。
+
+svw 不会搜索 bridge 或 reader 动态库。主进程建立有界只读通道，并启动同一份
+精确 `svw` 可执行文件作为隔离子进程；只有该子进程以局部符号可见性加载用户
+指定的 bridge 绝对路径，并解析唯一的版本化 C ABI 入口。bridge 再使用该用户
+机器上安装的 reader。分发门禁会拒绝 bridge/reader 直接依赖、reader 符号与
+路径、运行时搜索路径，以及混入 svw 制品的任何动态库或静态归档。
+
 为获得最清晰的显示效果，建议使用字符覆盖完整的现代等宽终端字体。项目截图与
 录屏采用相同的推荐设置。
 
