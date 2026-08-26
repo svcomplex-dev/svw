@@ -9,6 +9,7 @@ revision=main
 reader_root=
 source_root=
 output=$PWD/libsvw-wave-bridge.so
+host_output=
 jobs=${SVW_BRIDGE_JOBS:-}
 
 usage() {
@@ -21,6 +22,7 @@ Options:
   --repository URL   Source URL (default: public svcomplex-dev repository)
   --revision REV     Exact commit or ref to build (default: main)
   --output FILE      Output shared library (default: ./libsvw-wave-bridge.so)
+  --host-output FILE Output loader host (default: next to the shared library)
   --jobs N           Parallel make jobs
 EOF
 }
@@ -37,6 +39,7 @@ while [ "$#" -gt 0 ]; do
         --repository) repository=${2:?missing value}; shift 2 ;;
         --revision) revision=${2:?missing value}; shift 2 ;;
         --output) output=${2:?missing value}; shift 2 ;;
+        --host-output) host_output=${2:?missing value}; shift 2 ;;
         --jobs) jobs=${2:?missing value}; shift 2 ;;
         -h|--help) usage; exit 0 ;;
         *) fail "unknown argument: $1" ;;
@@ -47,6 +50,12 @@ done
 [ -n "$reader_root" ] || fail "--reader-root is required"
 case $reader_root in /*) ;; *) reader_root=$PWD/$reader_root ;; esac
 case $output in /*) ;; *) output=$PWD/$output ;; esac
+if [ -z "$host_output" ]; then
+    host_output=$(dirname "$output")/svw-wave-bridge-host
+else
+    case $host_output in /*) ;; *) host_output=$PWD/$host_output ;; esac
+fi
+[ "$output" != "$host_output" ] || fail "library and host outputs must differ"
 [ -f "$reader_root/ffrAPI.h" ] || fail "missing $reader_root/ffrAPI.h"
 reader_lib=$reader_root/linux64
 [ -f "$reader_lib/libnffr.so" ] || fail "missing $reader_lib/libnffr.so"
@@ -100,10 +109,24 @@ make -C "$source_root" -j "$jobs" \
     READER_LIBS="-lnffr -lnsys $zlib_library -lpthread -ldl -lm"
 
 library=$source_root/build/libsvw-wave-bridge.so
+host=$source_root/build/svw-wave-bridge-host
 [ -s "$library" ] || fail "bridge build did not produce $library"
+[ -x "$host" ] || fail "bridge build did not produce $host"
 command -v nm >/dev/null 2>&1 || fail "nm is required to audit the bridge output"
 nm -D --defined-only "$library" | grep -Eq '[[:space:]]svw_wave_bridge_entry_v1$' ||
     fail "bridge ABI entry is missing"
-mkdir -p "$(dirname "$output")"
+file "$host" | grep -q 'ELF 64-bit.*x86-64' || fail "bridge host is not Linux x86-64 ELF"
+host_dependencies=$(ldd "$host")
+printf '%s\n' "$host_dependencies" |
+    grep -Eq 'libnffr|libnsys|not found' && fail "bridge host has an invalid runtime dependency"
+if host_error=$("$host" --svw-wave-bridge-host=1 relative-library.so 2>&1); then
+    fail "bridge host accepted a relative library path"
+fi
+if ! printf '%s\n' "$host_error" | grep -q 'must be absolute'; then
+    fail "bridge host invocation contract failed"
+fi
+mkdir -p "$(dirname "$output")" "$(dirname "$host_output")"
 install -m 0755 "$library" "$output"
+install -m 0755 "$host" "$host_output"
 printf 'svw wave bridge: %s\n' "$output"
+printf 'svw wave bridge host: %s\n' "$host_output"

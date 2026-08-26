@@ -85,7 +85,9 @@ obtained and are entitled to use:
 ```
 
 The helper clones the public bridge source and writes
-`./libsvw-wave-bridge.so`. It neither downloads nor copies any reader SDK.
+`./libsvw-wave-bridge.so` plus `./svw-wave-bridge-host`. Keep the two files in
+the same directory, or set `SVW_WAVE_BRIDGE_HOST` to the absolute host path.
+The helper neither downloads nor copies any reader SDK.
 
 The bridge client and its commands are always present in svw; there is no
 FSDB-specific build switch. `SVW_FSDB_BRIDGE` activates only the local library
@@ -93,9 +95,11 @@ chosen by the user. Without it, opening an FSDB reports how to activate the
 bridge, while every built-in waveform and design workflow remains available.
 
 svw never searches for a bridge or reader library. Its main process creates a
-bounded read-only channel and starts an isolated copy of the exact same `svw`
-executable. Only that child loads the absolute bridge path with local symbol
-visibility and resolves the single versioned C ABI entry. The bridge then uses
+bounded read-only channel and starts the adjacent user-built host (or the
+explicit `SVW_WAVE_BRIDGE_HOST`). Only that child loads the absolute bridge
+path with local symbol visibility and resolves the single versioned C ABI
+entry. This lets the fully static musl Linux executable interoperate with a
+glibc reader stack without linking or loading it itself. The bridge then uses
 the reader installed on that user's machine. Distribution gates reject bridge
 or reader dependencies, reader symbols and paths, runtime search paths, and
 dynamic libraries or archives inside the svw package.

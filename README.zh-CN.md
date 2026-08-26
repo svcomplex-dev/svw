@@ -74,18 +74,21 @@ Linux 用户可用以下脚本，以自己合法取得的本机 reader SDK 编�
 ./build-svw-wave-bridge.sh --reader-root /absolute/path/to/FsdbReader
 ```
 
-脚本从公开仓库克隆 bridge 源码并输出 `./libsvw-wave-bridge.so`，不会下载或复制
-任何 reader SDK。
+脚本从公开仓库克隆 bridge 源码并输出 `./libsvw-wave-bridge.so` 与
+`./svw-wave-bridge-host`。请将两者放在同一目录；也可以用
+`SVW_WAVE_BRIDGE_HOST` 显式指定 host 的绝对路径。脚本不会下载或复制任何 reader SDK。
 
 bridge 客户端及相关命令始终包含在 svw 中，不再存在 FSDB 专用编译开关。
 `SVW_FSDB_BRIDGE` 只负责激活用户明确选择的本机动态库；未设置时，打开 FSDB
 会给出激活说明，其他内置波形和设计工作流仍全部可用。
 
-svw 不会搜索 bridge 或 reader 动态库。主进程建立有界只读通道，并启动同一份
-精确 `svw` 可执行文件作为隔离子进程；只有该子进程以局部符号可见性加载用户
-指定的 bridge 绝对路径，并解析唯一的版本化 C ABI 入口。bridge 再使用该用户
-机器上安装的 reader。分发门禁会拒绝 bridge/reader 直接依赖、reader 符号与
-路径、运行时搜索路径，以及混入 svw 制品的任何动态库或静态归档。
+svw 不会搜索 bridge 或 reader 动态库。主进程建立有界只读通道，并启动与 bridge
+相邻的用户现场编译 host（也可由 `SVW_WAVE_BRIDGE_HOST` 显式指定）；只有该子进程
+以局部符号可见性加载用户指定的 bridge 绝对路径，并解析唯一的版本化 C ABI 入口。
+因此，完全静态的 musl Linux `svw` 无需自行链接或加载 glibc reader 栈，也能与它
+协作。bridge 再使用该用户机器上安装的 reader。分发门禁会拒绝 bridge/reader
+直接依赖、reader 符号与路径、运行时搜索路径，以及混入 svw 制品的任何动态库或
+静态归档。
 
 为获得最清晰的显示效果，建议使用字符覆盖完整的现代等宽终端字体。项目截图与
 录屏采用相同的推荐设置。
