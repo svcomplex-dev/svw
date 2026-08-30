@@ -5,13 +5,13 @@
 set -eu
 
 repo="${SVW_REPOSITORY:-svcomplex-dev/svw}"
-default_version=0.1.0
 version_explicit=0
 if [ "${SVW_VERSION+x}" = x ]; then
     version_explicit=1
 fi
-requested_version="${SVW_VERSION:-$default_version}"
+requested_version="${SVW_VERSION:-stable}"
 release_base_url="${SVW_RELEASE_BASE_URL:-https://github.com/${repo}/releases/download}"
+releases_api_url="${SVW_RELEASES_API_URL:-https://api.github.com/repos/${repo}/releases?per_page=100}"
 user_home="${HOME:-}"
 bin_dir="${SVW_BIN_DIR:-${user_home}/.local/bin}"
 install_root="${SVW_INSTALL_ROOT:-${user_home}/.local/share/svw}"
@@ -39,12 +39,13 @@ macOS installs from the svcomplex-dev/tap Homebrew tap. --bin-dir and
 --install-root are Linux-only. Linux downloads an audited GitHub Release archive.
 
 Environment variables:
-  SVW_VERSION           Version to install (default: newest stable release, currently 0.1.0)
+  SVW_VERSION           Version to install (default: newest published release-X.Y.Z)
   SVW_BIN_DIR           Linux command directory (default: ~/.local/bin)
   SVW_INSTALL_ROOT      Linux package root (default: ~/.local/share/svw)
   SVW_NO_MODIFY_PATH    Set to 1 to leave Linux startup files unchanged
   SVW_REPOSITORY        Linux GitHub repository (default: svcomplex-dev/svw)
   SVW_RELEASE_BASE_URL  Override the Linux GitHub Release download base URL
+  SVW_RELEASES_API_URL  Override the Linux GitHub Releases metadata URL
 EOF
 }
 
@@ -87,6 +88,12 @@ if [ "${SVW_NO_MODIFY_PATH:-0}" = "1" ]; then
 fi
 
 case "$requested_version" in
+    stable)
+        [ "$version_explicit" -eq 0 ] ||
+            die "version must be latest, X.Y.Z, or release-X.Y.Z"
+        release_tag=stable
+        product_version=stable
+        ;;
     latest)
         release_tag=latest
         product_version=latest
@@ -165,10 +172,6 @@ esac
 [ -n "$bin_dir" ] || die "installation bin directory is empty"
 [ -n "$install_root" ] || die "installation root is empty"
 
-asset="svw-${release_tag}-${platform}.tar.gz"
-archive_url="${release_base_url%/}/${release_tag}/${asset}"
-checksum_url="${archive_url}.sha256"
-
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/svw-install.XXXXXX") ||
     die "cannot create a temporary directory"
 stage_dir=
@@ -200,6 +203,49 @@ download() {
         die "curl or wget is required"
     fi
 }
+
+resolve_stable_release() {
+    releases_file="$tmp_dir/github-releases.json"
+    download "$releases_api_url" "$releases_file" ||
+        die "cannot fetch published releases from GitHub"
+    tr ',' '\n' < "$releases_file" |
+        sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\(release-[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)".*/\1/p' |
+        awk -F '[.-]' '
+            $1 == "release" &&
+            $2 ~ /^(0|[1-9][0-9]*)$/ &&
+            $3 ~ /^(0|[1-9][0-9]*)$/ &&
+            $4 ~ /^(0|[1-9][0-9]*)$/ {
+                major = $2 + 0
+                minor = $3 + 0
+                patch = $4 + 0
+                if (!found || major > best_major ||
+                    (major == best_major && minor > best_minor) ||
+                    (major == best_major && minor == best_minor &&
+                     patch > best_patch)) {
+                    found = 1
+                    best_major = major
+                    best_minor = minor
+                    best_patch = patch
+                }
+            }
+            END {
+                if (found)
+                    printf "release-%d.%d.%d\n", best_major, best_minor, best_patch
+            }
+        '
+}
+
+if [ "$release_tag" = stable ]; then
+    release_tag=$(resolve_stable_release)
+    [ -n "$release_tag" ] ||
+        die "GitHub has no published release-MAJOR.MINOR.PATCH release"
+    product_version=${release_tag#release-}
+    say "Resolved newest stable release: $release_tag"
+fi
+
+asset="svw-${release_tag}-${platform}.tar.gz"
+archive_url="${release_base_url%/}/${release_tag}/${asset}"
+checksum_url="${archive_url}.sha256"
 
 archive="$tmp_dir/$asset"
 checksum_file="${archive}.sha256"

@@ -34,6 +34,19 @@ make_linux_asset() {
 
 make_linux_asset latest
 make_linux_asset release-0.1.0
+make_linux_asset release-0.1.2
+cat > "$release_dir/stable-releases.json" <<'EOF'
+[
+  {"tag_name": "latest"},
+  {"tag_name": "release-0.1.1"},
+  {"tag_name": "release-9.9.9-rc1"},
+  {"tag_name": "release-0.1.2"},
+  {"tag_name": "release-01.3.0"},
+  {"tag_name": "release-0.1.0"}
+]
+EOF
+printf '%s\n' '[{"tag_name": "latest"}]' \
+    > "$release_dir/no-stable-releases.json"
 
 cat > "$mock_bin/uname" <<'EOF'
 #!/bin/sh
@@ -118,6 +131,7 @@ run_linux_install() {
     TEST_UNAME_M=x86_64 \
     MOCK_RELEASE_DIR="$release_dir" \
     SVW_RELEASE_BASE_URL=https://example.invalid/releases/download \
+    SVW_RELEASES_API_URL=https://example.invalid/stable-releases.json \
         sh "$project_dir/install.sh" "$@"
 
     result=$("$home_dir/.local/bin/svw")
@@ -133,11 +147,12 @@ run_linux_install() {
     TEST_UNAME_M=x86_64 \
     MOCK_RELEASE_DIR="$release_dir" \
     SVW_RELEASE_BASE_URL=https://example.invalid/releases/download \
+    SVW_RELEASES_API_URL=https://example.invalid/stable-releases.json \
         sh "$project_dir/install.sh" "$@" >/dev/null
     [ "$(grep -c '# Added by the svw installer' "$home_dir/.zshrc")" -eq 1 ]
 }
 
-run_linux_install default release-0.1.0
+run_linux_install default release-0.1.2
 run_linux_install latest latest
 run_linux_install 0.1.0 release-0.1.0
 run_linux_install release-0.1.0 release-0.1.0
@@ -205,11 +220,26 @@ if HOME="$bad_home" \
     TEST_UNAME_M=x86_64 \
     MOCK_RELEASE_DIR="$test_dir/bad-release" \
     SVW_RELEASE_BASE_URL=https://example.invalid/releases/download \
-        sh "$project_dir/install.sh" >/dev/null 2>&1; then
+        sh "$project_dir/install.sh" --version 0.1.0 >/dev/null 2>&1; then
     printf 'expected a bad checksum to fail\n' >&2
     exit 1
 fi
 [ ! -e "$bad_home/.local/bin/svw" ]
+
+no_stable_home="$test_dir/home-no-stable-release"
+mkdir -p "$no_stable_home"
+if HOME="$no_stable_home" \
+    PATH="$mock_bin:/usr/bin:/bin" \
+    TEST_UNAME_S=Linux \
+    TEST_UNAME_M=x86_64 \
+    MOCK_RELEASE_DIR="$release_dir" \
+    SVW_RELEASE_BASE_URL=https://example.invalid/releases/download \
+    SVW_RELEASES_API_URL=https://example.invalid/no-stable-releases.json \
+        sh "$project_dir/install.sh" >/dev/null 2>&1; then
+    printf 'expected missing stable release metadata to fail\n' >&2
+    exit 1
+fi
+[ ! -e "$no_stable_home/.local/bin/svw" ]
 
 if HOME="$test_dir/home-unsupported" \
     PATH="$mock_bin:/usr/bin:/bin" \
