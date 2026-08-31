@@ -161,28 +161,6 @@ go through on-disk indexes:
 svw extract wave.vcd wave.kbx
 ```
 
-### Format comparison
-
-Measured with `tests/mxv_bench` (100,000 signals x 2,000 time steps =
-200M value changes, noisy profile; AMD Ryzen 7 5800U, Linux x86_64—absolute
-numbers vary by machine):
-
-| metric | VCD | FST | KBX | KBX (lazy) |
-|---|---|---|---|---|
-| file size (MB) | 487 | 116 | **98** | - |
-| write (s) | 10.5 | 20.9 | **21.8** | - |
-| load (s) | 80.7 | 39.0 | 11.9 | see note |
-| value_at (ns/op) | 1299 | 1299 | 1299 | 14874 |
-| signal search (ns/op) | 2181514 | 2181514 | - | **960** |
-| changes_in window (us/op) | 3.0 | 3.0 | 3.0 | 19.1 |
-
-Fully loaded formats share the same in-memory query engine, so their
-`value_at`/`changes_in` numbers match. The lazy column does not "load":
-opening a KBX lazily is an mmap plus header check (microseconds at any
-file size—below the bench's 0.1 ms resolution, which is why earlier
-revisions of this table printed a misleading "0.0000 s"), and every query
-then pays on-disk block decode (see the per-op columns).
-
 ### Large VCD loads
 
 Measured on a real 1.1 GB VCD (93M value changes, `svw --headless`,
