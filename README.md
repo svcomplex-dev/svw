@@ -108,6 +108,21 @@ For the clearest display, use a modern monospaced terminal font with broad
 symbol coverage. The screenshots and recordings use the same recommended
 setup.
 
+To capture an intermittent terminal display problem, start the TUI with a
+compressed byte-exact trace, reproduce the problem, then quit normally:
+
+```sh
+svw --terminal-record display.svwtrace.gz wave.vcd
+```
+
+The trace records terminal output bytes and write boundaries/results, raw key
+and mouse input, window sizes, and a small whitelist of terminal/locale
+environment variables. It can therefore contain signal names, displayed
+values, commands, and paths visible during the session; review it as sensitive
+debug data before sharing. The diagnostic reader and byte-exact replayer reject
+files without both the gzip signature and the exact internal svw
+terminal-trace header.
+
 ## Common commands
 
 Press `:` in the TUI, type a command, and press Enter. These commands cover a
